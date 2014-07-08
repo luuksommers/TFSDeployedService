@@ -1,0 +1,12 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+
+  <!-- These settings control what the service's name. -->
+  <PropertyGroup Label="ServiceMetaData">
+    <ServiceName>My TFS Deployed Service</ServiceName>
+    <ServiceFolder>TFSDeployedService</ServiceFolder>
+  </PropertyGroup>
+
+  <Import Project="..\DeployApplication.targets" />
+  <Import Project="..\DeployService.targets" />
+
+</Project>

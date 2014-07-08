@@ -1,0 +1,47 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  
+  <Choose>
+    <When Condition="'$(DeploymentServerName)' == ''">
+      <PropertyGroup>
+        <!-- You can choose any path here. For convenience, I'm using C: -->
+        <DeploymentFolder>C:\MyDeployedServices\$(Configuration)\$(ServiceFolder)</DeploymentFolder>
+      </PropertyGroup>
+    </When>
+    <Otherwise>
+      <PropertyGroup>
+        <!-- should be in \\serverName format-->
+        <DeploymentServer Condition="'$(DeploymentServerName)' != ''">$(DeploymentServerName)</DeploymentServer>
+        <DeploymentFolder>$(DeploymentServer)\Services\$(Configuration)\$(ServiceFolder)</DeploymentFolder>
+        <!-- 4:5:4 => Planned: Application: Upgrade. For more reason codes, run "sc stop" -->
+        <DeploymentReason>4:5:4</DeploymentReason>
+      </PropertyGroup>
+    </Otherwise>
+  </Choose>
+
+  <Target Name="DeployService" AfterTargets="AfterBuild">
+
+    <CreateItem Include="$(OutDir)_PublishedApplications\$(MSBuildProjectName)\bin\*.*">
+      <Output ItemName="DeployFiles" TaskParameter="Include" />
+    </CreateItem>
+    <Message Text="Starting deployment of Service: $(ServiceName) $(ServiceEnvironment)... " Importance="high" />
+
+    <!-- This is just for debugging purposes -->
+    <Message Text="%0a%0dProjectOutputs:%0a%0d    @(DeployFiles,'%0a%0d    ')" Importance="low" />
+
+    <Message Text="Stopping Service... " Importance="high" />
+
+    <!-- 4:5:4 => Planned: Application: Upgrade -->
+    <Exec Command="&quot;$(MSBuildThisFileDirectory)safeServiceStop.bat&quot; &quot;$(ServiceName) $(ServiceEnvironment)&quot; $(DeploymentServer) $(DeploymentReason)" ContinueOnError="true" />
+
+    <Message Text="Copying files to $(DeploymentFolder)..." Importance="high" />
+    <Copy SourceFiles="@(DeployFiles)"
+			  DestinationFolder="$(DeploymentFolder)"
+			  SkipUnchangedFiles="true"
+			  OverwriteReadOnlyFiles="true" Retries="3" RetryDelayMilliseconds="5000" ContinueOnError="False" />
+
+    
+    <Message Text="Starting Service..." Importance="high" />
+    <Exec Command="&quot;$(MSBuildThisFileDirectory)safeServiceStart.bat&quot; &quot;$(ServiceName) $(ServiceEnvironment)&quot; $(DeploymentServer)" ContinueOnError="true" />
+    
+  </Target>
+</Project>
